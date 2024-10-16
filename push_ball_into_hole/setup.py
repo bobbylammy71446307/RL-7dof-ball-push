@@ -1,20 +1,34 @@
 import gymnasium as gym
-from push import MujocoFetchPushEnv
+from push import PushingBallEnv
 
 # Register the custom FetchPush environment
 gym.register(
     id='MujocoFetchPush-v0',
-    entry_point='push:MujocoFetchPushEnv',  # Ensure the module path is correct based on your file structure
+    entry_point='push:PushingBallEnv',  # Ensure the module path is correct based on your file structure
     max_episode_steps=50,
 )
 
 # Test the registered environment
 env = gym.make('MujocoFetchPush-v0', render_mode= 'human')
 env.reset()
+# Run a loop for a few steps
 for _ in range(1000):
-    action = env.action_space.sample()  # Sample a random action
-    env.step(action)  # Apply the action
-    env.render()  # Render the environment (ensure MuJoCo rendering setup is correct)
+    # Render the environment
+    env.render()
+
+    # Sample a random action
+    #action = env.action_space.sample()
+    action = [0.1, 0.1, 0.1, 0.1]
+
+    # Step through the environment with the sampled action
+    observation, reward, terminated, truncated, info = env.step(action)
+    print(reward)
+
+    # If the episode terminates, reset the environment
+    if terminated or truncated:
+        observation, info = env.reset()
+
+# Close the environment when done
 env.close()
 
 

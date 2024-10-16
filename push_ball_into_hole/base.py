@@ -1,91 +1,85 @@
-from typing import Union
-
 import numpy as np
 
-from gymnasium_robotics.envs.robot_env import MujocoPyRobotEnv, MujocoRobotEnv
+from gymnasium_robotics.envs.robot_env import MujocoRobotEnv
 from gymnasium_robotics.utils import rotations
 
 DEFAULT_CAMERA_CONFIG = {
-    "distance": 2.5,
-    "azimuth": 132.0,
+    "distance": 3,
+    "azimuth": 90.0,
     "elevation": -14.0,
     "lookat": np.array([1.3, 0.75, 0.55]),
 }
 
 
-def goal_distance(goal_a, goal_b):
-    assert goal_a.shape == goal_b.shape
-    return np.linalg.norm(goal_a - goal_b, axis=-1)
+def get_base_fetch_env(RobotEnvClass: MujocoRobotEnv):
+   #This function returns a class that takes its structure from the MujocoRobotEnv class which allows us to make robotic environments using the Mujoco Simulator.
+   #Below is the class that will set up our framework for the 7-DOF robot we are using which will have a hollow half-cylinder end effector that will be able to push a ball into a hole.
 
-
-def get_base_fetch_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
-    """Factory function that returns a BaseFetchEnv class that inherits
-    from MujocoPyRobotEnv or MujocoRobotEnv depending on the mujoco python bindings.
-    """
-
-    class BaseFetchEnv(RobotEnvClass):
-        """Superclass for all Fetch environments."""
-
+    class PushEnv(RobotEnvClass):
+        
         def __init__(
             self,
-            gripper_extra_height,
-            block_gripper,
+            block_end_effector,
             has_object: bool,
-            target_in_the_air,
-            target_offset,
             obj_range,
             target_range,
             distance_threshold,
             reward_type,
-            **kwargs
+            **kwargs,
         ):
-            """Initializes a new Fetch environment.
+            # Initializes our environment with the following parameters:
 
-            Args:
-                model_path (string): path to the environments XML file
-                n_substeps (int): number of substeps the simulation runs on every call to step
-                gripper_extra_height (float): additional height above the table when positioning the gripper
-                block_gripper (boolean): whether or not the gripper is blocked (i.e. not movable) or not
-                has_object (boolean): whether or not the environment has an object
-                target_in_the_air (boolean): whether or not the target should be in the air above the table or on the table surface
-                target_offset (float or array with 3 elements): offset of the target
-                obj_range (float): range of a uniform distribution for sampling initial object positions
-                target_range (float): range of a uniform distribution for sampling a target
-                distance_threshold (float): the threshold after which a goal is considered achieved
-                initial_qpos (dict): a dictionary of joint names and values that define the initial configuration
-                reward_type ('sparse' or 'dense'): the reward type, i.e. sparse or dense
-            """
+            # Args:
+            #     model_path - : path to the environments XML file (from the RobotEnv class)
 
-            self.gripper_extra_height = gripper_extra_height
-            self.block_gripper = block_gripper
+            #     n_substeps - : number of substeps the simulation runs on every call to step (from the RobotEnv class). This will affect the control frequency of the robot, as the same action will be run in one step for n_substeps times.
+
+            #     initial_qpos - a dictionary of joint names and values that define the initial configuration (from the RobotEnv class)
+
+            #     block_end_effector (boolean): our end-effector does not move at all and will always be the same orientation. As of now it is a half-hollow-cylinder that will push the ball into the hole.
+            #     This is left as a boolean if we decide to change our end-effector
+
+            #     has_object : whether or not the environment has an object
+
+            #     obj_range : The range within which the objects positions are randomly chosen
+            #     target_range : The range within which the target position is randomly chosen
+
+            #     distance_threshold: Used in the reward function to determine how how close to the goal is considered successful
+            
+            #     reward_type ('sparse' or 'dense'): Our initial idea is to use a dense reward function because we want to reduce the number of steps it takes to push the ball into the hole,
+            #     but sparse reward is also being considered
+            self.block_end_effector = block_end_effector
             self.has_object = has_object
-            self.target_in_the_air = target_in_the_air
-            self.target_offset = target_offset
             self.obj_range = obj_range
             self.target_range = target_range
             self.distance_threshold = distance_threshold
             self.reward_type = reward_type
 
-            super().__init__(n_actions=4, **kwargs)
+            super().__init__(n_actions=4, **kwargs) #The action space is defined in the MujocoRobotEnv class, and we have chosen a 4-dimensional vector where the first 3 dimensions will be the position of the end effector and the 4th dimension is the end_effector control.
+
+            ###--> self.action_space = spaces.Box(-1.0, 1.0, shape=(n_actions,), dtype="float32")
+
+
+        #REWARD FUNCTION    
 
 
         def compute_reward(self, achieved_goal, goal, info):
-            # Compute distance between goal and the achieved goal.
-            d = goal_distance(achieved_goal, goal)
-            if self.reward_type == "sparse":
-                return -(d > self.distance_threshold).astype(np.float32)
+            # The Euclidean Distance between the achieved goal and the target goal
+            d = np.linalg.norm(achieved_goal - goal, axis=-1)
+            
+            if self.reward_type == "dense":
+                return -d                
             else:
-                return -d
-
-        # RobotEnv methods
-        # ----------------------------
+               return -(d > self.distance_threshold).astype(np.float32) # Returns 0 if the distance is less than the threshold, -1 otherwise
+        
+        #ACTION FUNCTION
 
         def _set_action(self, action):
             assert action.shape == (4,)
             action = (
                 action.copy()
             )  # ensure that we don't change the action outside of this scope
-            pos_ctrl, gripper_ctrl = action[:3], action[3]
+            pos_ctrl, end_effector_ctrl = action[:3], action[3]
 
             pos_ctrl *= 0.05  # limit maximum change in position
             rot_ctrl = [
@@ -94,43 +88,44 @@ def get_base_fetch_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 1.0,
                 0.0,
             ]  # fixed rotation of the end effector, expressed as a quaternion
-            gripper_ctrl = np.array([gripper_ctrl, gripper_ctrl])
-            assert gripper_ctrl.shape == (2,)
-            if self.block_gripper:
-                gripper_ctrl = np.zeros_like(gripper_ctrl)
-            action = np.concatenate([pos_ctrl, rot_ctrl, gripper_ctrl])
+            end_effector_ctrl = np.array([end_effector_ctrl, end_effector_ctrl])
+            assert end_effector_ctrl.shape == (2,)
+            if self.block_end_effector:
+                end_effector_ctrl = np.zeros_like(end_effector_ctrl) #We are not controlling the end effector at all for our task, just a pushing action
+            action = np.concatenate([pos_ctrl, rot_ctrl, end_effector_ctrl])
 
             return action
 
         def _get_obs(self):
             (
-                grip_pos,
+                end_effector_pos,
                 object_pos,
                 object_rel_pos,
-                gripper_state,
+                end_effector_state,
                 object_rot,
                 object_velp,
                 object_velr,
                 grip_velp,
-                gripper_vel,
+                end_effector_vel, 
+                #All the observations that we want to recieve from the environment
             ) = self.generate_mujoco_observations()
 
             if not self.has_object:
-                achieved_goal = grip_pos.copy()
+                achieved_goal = end_effector_pos.copy()
             else:
                 achieved_goal = np.squeeze(object_pos.copy())
 
             obs = np.concatenate(
                 [
-                    grip_pos,
+                    end_effector_pos,
                     object_pos.ravel(),
                     object_rel_pos.ravel(),
-                    gripper_state,
+                    end_effector_state,
                     object_rot.ravel(),
                     object_velp.ravel(),
                     object_velr.ravel(),
                     grip_velp,
-                    gripper_vel,
+                    end_effector_vel,
                 ]
             )
 
@@ -153,28 +148,29 @@ def get_base_fetch_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
                     -self.target_range, self.target_range, size=3
                 )
-                goal += self.target_offset
                 goal[2] = self.height_offset
-                if self.target_in_the_air and self.np_random.uniform() < 0.5:
-                    goal[2] += self.np_random.uniform(0, 0.45)
             else:
                 goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
                     -self.target_range, self.target_range, size=3
                 )
+
+                #This generates a new target goal position within target range specified from gripper position
             return goal.copy()
 
         def _is_success(self, achieved_goal, desired_goal):
-            d = goal_distance(achieved_goal, desired_goal)
+            d = np.linalg.norm(achieved_goal - desired_goal, axis=-1)
             return (d < self.distance_threshold).astype(np.float32)
+        
+             #This function determines whether the task goal has been achieved by comparing the achieved_goal with the desired_goal:
 
-    return BaseFetchEnv
+    return PushEnv
 
-class MujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
+class MujocoSimulation(get_base_fetch_env(MujocoRobotEnv)):
     def __init__(self, default_camera_config: dict = DEFAULT_CAMERA_CONFIG, **kwargs):
         super().__init__(default_camera_config=default_camera_config, **kwargs)
 
     def _step_callback(self):
-        if self.block_gripper:
+        if self.block_end_effector:
             self._utils.set_joint_qpos(
                 self.model, self.data, "robot0:l_gripper_finger_joint", 0.0
             )
@@ -192,7 +188,7 @@ class MujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
 
     def generate_mujoco_observations(self):
         # positions
-        grip_pos = self._utils.get_site_xpos(self.model, self.data, "robot0:grip")
+        end_effector_pos = self._utils.get_site_xpos(self.model, self.data, "robot0:grip")
 
         dt = self.n_substeps * self.model.opt.timestep
         grip_velp = (
@@ -216,28 +212,28 @@ class MujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
                 self._utils.get_site_xvelr(self.model, self.data, "object0") * dt
             )
             # gripper state
-            object_rel_pos = object_pos - grip_pos
+            object_rel_pos = object_pos - end_effector_pos
             object_velp -= grip_velp
         else:
             object_pos = (
                 object_rot
             ) = object_velp = object_velr = object_rel_pos = np.zeros(0)
-        gripper_state = robot_qpos[-2:]
+        end_effector_state = robot_qpos[-2:]
 
-        gripper_vel = (
+        end_effector_vel = (
             robot_qvel[-2:] * dt
         )  # change to a scalar if the gripper is made symmetric
 
         return (
-            grip_pos,
+            end_effector_pos,
             object_pos,
             object_rel_pos,
-            gripper_state,
+            end_effector_state,
             object_rot,
             object_velp,
             object_velr,
             grip_velp,
-            gripper_vel,
+            end_effector_vel,
         )
 
     def _get_gripper_xpos(self):
@@ -254,8 +250,11 @@ class MujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
         self._mujoco.mj_forward(self.model, self.data)
 
     def _reset_sim(self):
-        # Reset buffers for joint states, actuators, warm-start, control buffers etc.
-        self._mujoco.mj_resetData(self.model, self.data)
+        self.data.time = self.initial_time
+        self.data.qpos[:] = np.copy(self.initial_qpos)
+        self.data.qvel[:] = np.copy(self.initial_qvel)
+        if self.model.na != 0:
+            self.data.act[:] = None
 
         # Randomize start position of object.
         if self.has_object:
@@ -284,7 +283,7 @@ class MujocoFetchEnv(get_base_fetch_env(MujocoRobotEnv)):
 
         # Move end effector into position.
         gripper_target = np.array(
-            [-0.498, 0.005, -0.431 + self.gripper_extra_height]
+            [-0.498, 0.005, -0.431]
         ) + self._utils.get_site_xpos(self.model, self.data, "robot0:grip")
         gripper_rotation = np.array([1.0, 0.0, 1.0, 0.0])
         self._utils.set_mocap_pos(self.model, self.data, "robot0:mocap", gripper_target)
