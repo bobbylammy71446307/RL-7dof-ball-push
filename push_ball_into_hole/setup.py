@@ -17,8 +17,8 @@ for _ in range(1000):
     env.render()
 
     # Sample a random action
-    #action = env.action_space.sample()
-    action = [0.1, 0.1, 0.1, 0.1]
+    action = env.action_space.sample()
+    #action = [0.1, 0.1, 0.1, 0.1]
 
     # Step through the environment with the sampled action
     observation, reward, terminated, truncated, info = env.step(action)
