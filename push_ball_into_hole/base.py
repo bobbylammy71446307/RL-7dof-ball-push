@@ -11,7 +11,7 @@ DEFAULT_CAMERA_CONFIG = {
 }
 
 
-def get_base_fetch_env(RobotEnvClass: MujocoRobotEnv):
+def get_base_env(RobotEnvClass: MujocoRobotEnv):
    #This function returns a class that takes its structure from the MujocoRobotEnv class which allows us to make robotic environments using the Mujoco Simulator.
    #Below is the class that will set up our framework for the 7-DOF robot we are using which will have a hollow half-cylinder end effector that will be able to push a ball into a hole.
 
@@ -70,11 +70,13 @@ def get_base_fetch_env(RobotEnvClass: MujocoRobotEnv):
             if self.reward_type == "dense":
                 return -d                
             else:
-               return -(d > self.distance_threshold).astype(np.float32) # Returns 0 if the distance is less than the threshold, -1 otherwise
+               return -(d > self.distance_threshold).astype(np.float32) # Returns 0 if the distance is less than the threshold, -1 otherwise . This is for making it a sparse reward structure, however for ease of training time we will use dense as default.
         
         #ACTION FUNCTION
 
         def _set_action(self, action):
+            #As mentioned before, the action space is a Box(-1.0, 1.0, shape=(4)), where an action represents the cartesion movement dx dy dz of the end effector, and last action that controls opening and closing of our end effector.
+            # Min -1 Max 1
             assert action.shape == (4,)
             action = (
                 action.copy()
@@ -91,27 +93,29 @@ def get_base_fetch_env(RobotEnvClass: MujocoRobotEnv):
             end_effector_ctrl = np.array([end_effector_ctrl, end_effector_ctrl])
             assert end_effector_ctrl.shape == (2,)
             if self.block_end_effector:
-                end_effector_ctrl = np.zeros_like(end_effector_ctrl) #We are not controlling the end effector at all for our task, just a pushing action
+                end_effector_ctrl = np.zeros_like(end_effector_ctrl) #We are not controlling the end effector at all for our task, just a pushing action thus this
             action = np.concatenate([pos_ctrl, rot_ctrl, end_effector_ctrl])
 
             return action
 
         def _get_obs(self):
             (
-                end_effector_pos,
-                object_pos,
-                object_rel_pos,
-                end_effector_state,
-                object_rot,
-                object_velp,
-                object_velr,
-                grip_velp,
-                end_effector_vel, 
+                end_effector_pos, # x y z position of the end effector in world coordinates
+                object_pos, # ball x y z position in world coordinates
+                object_rel_pos, # x y z Relative position of ball to end effector in world cooridnates
+                end_effector_state, # displacement of left and right cylinder end effector
+                object_rot, # x y z rotation of ball in Euler frame rotation
+                object_velp, # x y z linear velocity with respect to end effector
+                object_velr, #x y z axis ball angular velocity
+                grip_velp, #x y z end effector link x y z velocity
+                end_effector_vel, # velocity of left and right cylinder end effector
+
                 #All the observations that we want to recieve from the environment
+
             ) = self.generate_mujoco_observations()
 
             if not self.has_object:
-                achieved_goal = end_effector_pos.copy()
+                achieved_goal = end_effector_pos.copy() # Represents where the ball is pushed till, x y z position in world coordinates.
             else:
                 achieved_goal = np.squeeze(object_pos.copy())
 
@@ -130,9 +134,9 @@ def get_base_fetch_env(RobotEnvClass: MujocoRobotEnv):
             )
 
             return {
-                "observation": obs.copy(),
+                "observation": obs.copy(), 
                 "achieved_goal": achieved_goal.copy(),
-                "desired_goal": self.goal.copy(),
+                "desired_goal": self.goal.copy(), #Represents the final goal to be achived, x y z position in world coordinates. 
             }
 
         def generate_mujoco_observations(self):
@@ -165,17 +169,22 @@ def get_base_fetch_env(RobotEnvClass: MujocoRobotEnv):
 
     return PushEnv
 
-class MujocoSimulation(get_base_fetch_env(MujocoRobotEnv)):
+class MujocoSimulation(get_base_env(MujocoRobotEnv)):
+
+
+    #This is the simulation class which has all the Mujoco bindings to show the actual robot arm and the ball moving in the mujoco simulator
+
+
     def __init__(self, default_camera_config: dict = DEFAULT_CAMERA_CONFIG, **kwargs):
         super().__init__(default_camera_config=default_camera_config, **kwargs)
 
     def _step_callback(self):
         if self.block_end_effector:
             self._utils.set_joint_qpos(
-                self.model, self.data, "robot0:l_gripper_finger_joint", 0.0
+                self.model, self.data, "robot0:l_end_effector_joint", 0.0
             )
             self._utils.set_joint_qpos(
-                self.model, self.data, "robot0:r_gripper_finger_joint", 0.0
+                self.model, self.data, "robot0:r_end_effector_joint", 0.0
             )
             self._mujoco.mj_forward(self.model, self.data)
 
@@ -222,7 +231,7 @@ class MujocoSimulation(get_base_fetch_env(MujocoRobotEnv)):
 
         end_effector_vel = (
             robot_qvel[-2:] * dt
-        )  # change to a scalar if the gripper is made symmetric
+        ) 
 
         return (
             end_effector_pos,
