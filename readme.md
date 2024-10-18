@@ -24,7 +24,7 @@ To run the project :
 - Run the setup script to register the environment and run the          simulation for 1000 steps with random actions.
 
 
-You can install the necessary libraries using pip:
+Install the necessary libraries using pip:
 
 ```bash
 pip install gymnasium[robotics] mujoco numpy

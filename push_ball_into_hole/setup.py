@@ -22,7 +22,6 @@ for _ in range(1000):
 
     # Step through the environment with the sampled action
     observation, reward, terminated, truncated, info = env.step(action)
-    print(reward)
 
     # If the episode terminates, reset the environment
     if terminated or truncated:

@@ -11,7 +11,8 @@ MODEL_XML_PATH = os.path.join(os.path.dirname(__file__), "assets", "pushxml", "p
 
 class PushingBallEnv(MujocoSimulation, EzPickle):
     def __init__(self, reward_type="dense", **kwargs):
-        initial_qpos = {
+        
+        initial_qpos = {           
             "robot0:slide0": 0.405,
             "robot0:slide1": 0.48,
             "robot0:slide2": 0.0,

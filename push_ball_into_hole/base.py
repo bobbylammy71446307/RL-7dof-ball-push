@@ -3,9 +3,12 @@ import numpy as np
 from gymnasium_robotics.envs.robot_env import MujocoRobotEnv
 from gymnasium_robotics.utils import rotations
 
+
+#CHANGE CAMERA ANGLE FROM HERE
+
 DEFAULT_CAMERA_CONFIG = {
     "distance": 3,
-    "azimuth": 90.0,
+    "azimuth": 120,
     "elevation": -14.0,
     "lookat": np.array([1.3, 0.75, 0.55]),
 }
