@@ -105,13 +105,13 @@ def get_base_env(RobotEnvClass: MujocoRobotEnv):
             (
                 end_effector_pos, # x y z position of the end effector in world coordinates
                 object_pos, # ball x y z position in world coordinates
-                object_rel_pos, # x y z Relative position of ball to end effector in world cooridnates
+                object_rel_pos, # x y z Relative position of ball to end effector
                 end_effector_state, # displacement of left and right cylinder end effector
                 object_rot, # x y z rotation of ball in Euler frame rotation
-                object_velp, # x y z linear velocity with respect to end effector
+                object_velp, # x y z ball linear velocity with respect to end effector
                 object_velr, #x y z axis ball angular velocity
-                grip_velp, #x y z end effector link x y z velocity
-                end_effector_vel, # velocity of left and right cylinder end effector
+                grip_velp, # velocity of left and right cylinder end effector
+                end_effector_vel, # x y z end effector velocity 
 
                 #All the observations that we want to recieve from the environment
 

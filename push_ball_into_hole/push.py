@@ -1,6 +1,6 @@
 import os
 
-from gymnasium.utils.ezpickle import EzPickle
+from gymnasium.utils.ezpickle import EzPickle #Enables pickling and unpickling of the environment, facilitating serialization, which is helpful for saving and loading simulations.
 
 from base import MujocoSimulation
 

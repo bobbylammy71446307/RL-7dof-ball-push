@@ -3,13 +3,13 @@ from push import PushingBallEnv
 
 # Register the custom FetchPush environment
 gym.register(
-    id='MujocoFetchPush-v0',
+    id='PushingBall',
     entry_point='push:PushingBallEnv',  # Ensure the module path is correct based on your file structure
     max_episode_steps=50,
 )
 
 # Test the registered environment
-env = gym.make('MujocoFetchPush-v0', render_mode= 'human')
+env = gym.make('PushingBall', render_mode= 'human')
 env.reset()
 # Run a loop for a few steps
 for _ in range(1000):
