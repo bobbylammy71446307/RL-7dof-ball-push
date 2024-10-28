@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
-# Your existing network architecture (unchanged)
 class PushNetwork(nn.Module):
     def __init__(self, obs_dim, goal_dim, action_dim):
         super(PushNetwork, self).__init__()
@@ -72,15 +71,15 @@ class PushNetwork(nn.Module):
         
         return action_mean, value
 
-# Set dimensions based on your environment
+# Define dimensions
 obs_dim = 24       # Size of the 'observation' vector
 goal_dim = 3       # Size of the 'achieved_goal' and 'desired_goal' vectors
 action_dim = 4     # Size of your action space
 
-# Create the network (unchanged)
+#Network instance
 network = PushNetwork(obs_dim, goal_dim, action_dim)
 
-# Create an optimizer
+#Optimizer
 learning_rate = 1e-3
 optimizer = optim.Adam(network.parameters(), lr=learning_rate)
 
