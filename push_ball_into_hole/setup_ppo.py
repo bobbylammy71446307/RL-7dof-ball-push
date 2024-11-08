@@ -2,28 +2,26 @@ import gymnasium as gym
 from push import PushingBallEnv
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 from PPO_network import PushNetwork, PPOAgent
-
 
 # Register the custom FetchPush environment
 gym.register(
     id='PushingBall',
     entry_point='push:PushingBallEnv',  # Ensure the module path is correct based on your file structure
-    max_episode_steps=50,
+    max_episode_steps=100,
 )
 
-# Test the registered environment
-env = gym.make('PushingBall', render_mode= 'human')
+# Initialize the environment
+env = gym.make('PushingBall', render_mode='human')
 
 # Define dimensions based on your environment's observation and action spaces
 obs_dim = 25      # Replace with the actual observation dimension
 goal_dim = 3       # Replace with the actual goal dimension
 action_dim = 4     # Replace with the actual action dimension
 
-# Create an instance of your network
+# Create an instance of your network and PPO agent
 network = PushNetwork(obs_dim, goal_dim, action_dim)
-
-# Create an instance of PPOAgent
 agent = PPOAgent(network)
 
 # Hyperparameters
@@ -38,7 +36,7 @@ num_epochs = 100
 num_steps_per_update = 2048
 mini_batch_size = 64
 ppo_epochs = 10
-max_steps_per_episode = 200
+max_steps_per_episode = 1001
 
 # Rollout buffer
 class RolloutBuffer:
@@ -63,6 +61,11 @@ class RolloutBuffer:
         self.dones = []
 
 buffer = RolloutBuffer()
+
+# Lists to store metrics for plotting
+rewards_per_episode = []
+policy_losses = []
+value_losses = []
 
 # Training loop
 total_steps = 0
@@ -158,13 +161,17 @@ while episode < num_epochs:
                         'advantages': advantages[mb_indices],
                     }
 
-                    # Compute loss
-                    total_loss = agent.compute_loss(
+                    # Compute loss and separate policy and value losses
+                    total_loss, policy_loss, value_loss = agent.compute_loss(
                         batch_data, gamma, gae_lambda, clip_epsilon, value_loss_coef, entropy_coef
                     )
 
                     # Update network
                     agent.update(total_loss, max_grad_norm)
+
+                    # Store individual losses for plotting
+                    policy_losses.append(policy_loss.item())
+                    value_losses.append(value_loss.item())
 
             # Clear buffer
             buffer.clear()
@@ -173,6 +180,43 @@ while episode < num_epochs:
             break
 
     episode += 1
+    rewards_per_episode.append(episode_rewards)
     print(f"Episode {episode} completed. Total Reward: {episode_rewards}")
 
+# Save the trained policy after all episodes are completed
+torch.save(agent.network.state_dict(), "trained_policy.pth")
+print("Policy saved as 'trained_policy.pth'")
+
 env.close()
+
+# Plotting the results
+
+# Plot rewards per episode
+plt.figure(figsize=(10, 5))
+plt.plot(rewards_per_episode, label="Total Reward per Episode")
+plt.xlabel("Episode")
+plt.ylabel("Total Reward")
+plt.title("Total Reward per Episode")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Plot policy loss
+plt.figure(figsize=(10, 5))
+plt.plot(policy_losses, label="Policy Loss")
+plt.xlabel("Update Step")
+plt.ylabel("Loss")
+plt.title("Policy Loss during Training")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Plot value loss
+plt.figure(figsize=(10, 5))
+plt.plot(value_losses, label="Value Loss")
+plt.xlabel("Update Step")
+plt.ylabel("Loss")
+plt.title("Value Loss during Training")
+plt.legend()
+plt.grid(True)
+plt.show()

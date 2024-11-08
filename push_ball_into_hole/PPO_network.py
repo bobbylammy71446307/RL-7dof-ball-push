@@ -144,7 +144,7 @@ class PPOAgent:
 
         total_loss = policy_loss + value_loss_coef * value_loss + entropy_loss
 
-        return total_loss
+        return total_loss, policy_loss, value_loss
 
     def update(self, total_loss, max_grad_norm):
         self.optimizer.zero_grad()
