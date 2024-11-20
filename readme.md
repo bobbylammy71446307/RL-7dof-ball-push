@@ -16,16 +16,32 @@ The following libraries are required:
 - **Mujoco**: For physics-based simulations involving robotics.
 - **NumPy**: For numerical operations and data management.
 
-#### Running the Project
-
-To run the project :
-- Ensure all dependencies are installed.
-- Navigate to the directory containing the Python files.
-- Run the setup script to register the environment and run the          simulation for 1000 steps with random actions.
 
 
 Install the necessary libraries using pip:
 
 ```bash
 pip install gymnasium[robotics] mujoco numpy
+```
+### Project Structure
 
+    PPO_network.py: This file defines the learning agent using Proximal Policy Optimization (PPO). It includes the neural network architecture and the agent class that performs action selection, policy evaluation, and network updates.
+
+    setup_PPO.py: This is the setup script that integrates the PPO_network.py learning agent with the simulation environment. It configures the environment, runs training episodes, and visualizes the results.
+
+#### Running the Project
+
+To run the project:
+
+    Ensure all dependencies are installed.
+    Navigate to the directory containing the Python files.
+    Run the setup_PPO.py script to register the environment, set up the learning agent, and train the agent using PPO.
+
+
+This will simulate the robotic arm pushing the ball towards the target using a trained policy. The simulation runs for a specified number of episodes, with policy updates based on the PPO algorithm.
+Key Features
+
+    Implements a 7-DOF robotic arm using the Mujoco engine for high-fidelity physics simulation.
+    Uses Gymnasium for environment management and agent interactions.
+    Integrates a PPO-based learning agent for robust and stable training.
+    Visualizes training performance with plots of total rewards, policy loss, value loss, and total loss over time.

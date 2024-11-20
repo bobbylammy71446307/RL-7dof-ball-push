@@ -43,6 +43,8 @@ class PushingBallEnv(MujocoSimulation, EzPickle):
             initial_qpos=initial_qpos,  # Dictionary specifying the initial joint positions and orientations of the robot and object.
 
             reward_type=reward_type,  # Defines the type of reward function to be used ('sparse' or 'dense').
+            
+            randomize_positions = False,
 
             **kwargs  # Any additional arguments passed to the environment.
 

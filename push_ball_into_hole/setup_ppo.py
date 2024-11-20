@@ -5,22 +5,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PPO_network import PushNetwork, PPOAgent
 
-# Register the custom FetchPush environment
+# Register the custom Push environment
 gym.register(
     id='PushingBall',
-    entry_point='push:PushingBallEnv',  # Ensure the module path is correct based on your file structure
+    entry_point='push:PushingBallEnv', 
     max_episode_steps=100,
 )
 
-# Initialize the environment
+# Initializing the environment
 env = gym.make('PushingBall', render_mode='human')
 
-# Define dimensions based on your environment's observation and action spaces
-obs_dim = 25      # Replace with the actual observation dimension
-goal_dim = 3       # Replace with the actual goal dimension
-action_dim = 4     # Replace with the actual action dimension
+# Dimensions based on our environment's observation and action spaces
+obs_dim = 25      
+goal_dim = 3       
+action_dim = 4     
 
-# Create an instance of your network and PPO agent
+# Creating an instance of network and PPO agent
 network = PushNetwork(obs_dim, goal_dim, action_dim)
 agent = PPOAgent(network)
 
@@ -32,7 +32,7 @@ clip_epsilon = 0.2
 entropy_coef = 0.01
 value_loss_coef = 0.5
 max_grad_norm = 0.5
-num_epochs = 100
+num_epochs = 1000
 num_steps_per_update = 2048
 mini_batch_size = 64
 ppo_epochs = 10
@@ -66,6 +66,7 @@ buffer = RolloutBuffer()
 rewards_per_episode = []
 policy_losses = []
 value_losses = []
+total_losses = []  
 
 # Training loop
 total_steps = 0
@@ -172,6 +173,7 @@ while episode < num_epochs:
                     # Store individual losses for plotting
                     policy_losses.append(policy_loss.item())
                     value_losses.append(value_loss.item())
+                    total_losses.append(total_loss.item())  # Store total loss
 
             # Clear buffer
             buffer.clear()
@@ -217,6 +219,16 @@ plt.plot(value_losses, label="Value Loss")
 plt.xlabel("Update Step")
 plt.ylabel("Loss")
 plt.title("Value Loss during Training")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Plot total loss
+plt.figure(figsize=(10, 5))
+plt.plot(total_losses, label="Total Loss")
+plt.xlabel("Update Step")
+plt.ylabel("Loss")
+plt.title("Total Loss during Training")
 plt.legend()
 plt.grid(True)
 plt.show()

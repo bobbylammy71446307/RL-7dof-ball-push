@@ -41,7 +41,7 @@ class PushNetwork(nn.Module):
             nn.ReLU(),
         )
         self.action_mean = nn.Linear(256, action_dim)
-        # Use a learnable parameter for log std
+        # Learnable parameter for log std
         self.action_log_std = nn.Parameter(torch.zeros(action_dim))
 
         # Value network (Critic)
@@ -79,17 +79,20 @@ class PushNetwork(nn.Module):
 
 class PPOAgent:
     def __init__(self, network, learning_rate=3e-4):
+        #Intialize the network and optimizer
         self.network = network
         self.optimizer = optim.Adam(self.network.parameters(), lr=learning_rate)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.network.to(self.device)
 
     def select_action(self, observation, achieved_goal, desired_goal):
+        #Select action based on the current state
         observation = torch.tensor(observation, dtype=torch.float32).unsqueeze(0).to(self.device)
         achieved_goal = torch.tensor(achieved_goal, dtype=torch.float32).unsqueeze(0).to(self.device)
         desired_goal = torch.tensor(desired_goal, dtype=torch.float32).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
+            # Get the action mean, action std and value from the network
             action_mean, action_std, value = self.network(observation, achieved_goal, desired_goal)
             dist = torch.distributions.Normal(action_mean, action_std)
             action = dist.sample()
@@ -103,11 +106,14 @@ class PPOAgent:
         return action, action_log_prob, value
 
     def evaluate_actions(self, observations, achieved_goals, desired_goals, actions):
+        #Evaluate actions based on the current state
+
         observations = torch.tensor(observations, dtype=torch.float32).to(self.device)
         achieved_goals = torch.tensor(achieved_goals, dtype=torch.float32).to(self.device)
         desired_goals = torch.tensor(desired_goals, dtype=torch.float32).to(self.device)
         actions = torch.tensor(actions, dtype=torch.float32).to(self.device)
 
+        # Get the action mean, action std and value from the network
         action_mean, action_std, values = self.network(observations, achieved_goals, desired_goals)
         dist = torch.distributions.Normal(action_mean, action_std)
         action_log_probs = dist.log_prob(actions).sum(dim=-1, keepdim=True)
@@ -118,6 +124,8 @@ class PPOAgent:
         return action_log_probs, values, dist_entropy
 
     def compute_loss(self, batch_data, gamma, gae_lambda, clip_epsilon, value_loss_coef, entropy_coef):
+        #Compute the loss for the PPO agent
+
         observations = batch_data['observations']
         achieved_goals = batch_data['achieved_goals']
         desired_goals = batch_data['desired_goals']
@@ -129,7 +137,7 @@ class PPOAgent:
         action_log_probs, values, dist_entropy = self.evaluate_actions(
             observations, achieved_goals, desired_goals, actions
         )
-
+        # Compute the ratio of new and old action probabilities
         ratios = torch.exp(action_log_probs - torch.tensor(old_log_probs, dtype=torch.float32).to(self.device))
 
         advantages= torch.tensor(advantages, dtype=torch.float32).to(self.device)
@@ -147,7 +155,9 @@ class PPOAgent:
         return total_loss, policy_loss, value_loss
 
     def update(self, total_loss, max_grad_norm):
-        self.optimizer.zero_grad()
+        #Update the network based on the total loss
+
+        self.optimizer.zero_grad() #
         total_loss.backward()
         nn.utils.clip_grad_norm_(self.network.parameters(), max_grad_norm)
         self.optimizer.step()
