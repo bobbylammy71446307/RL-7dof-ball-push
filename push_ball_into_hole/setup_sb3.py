@@ -11,7 +11,7 @@ import numpy as np
 gym.register(
     id="PushingBall-v0",
     entry_point="push:PushingBallEnv",  # Replace with the correct path
-    max_episode_steps=1000,
+    max_episode_steps=100,
 )
 
 # Initialize the environment
@@ -23,7 +23,8 @@ check_env(env, warn=True)
 # Wrap the environment for vectorized training
 vec_env = DummyVecEnv([lambda: env])
 
-# Custom callback to log and store metrics
+
+
 class CustomMetricsCallback(BaseCallback):
     def __init__(self):
         super().__init__()
@@ -61,44 +62,11 @@ metrics_callback = CustomMetricsCallback()
 model.learn(total_timesteps=timesteps, callback=metrics_callback)
 
 # Save the trained model
-model.save("ppo_pushing_ball2")
+model.save("ppo_pushing_ball3")
 print("Model saved as 'ppo_pushing_ball2.zip'")
 
 # Close the environment
 vec_env.close()
 
-# Plotting the metrics
-plt.figure()
-plt.plot(metrics_callback.policy_losses, label="Policy Loss")
-plt.xlabel("Timesteps")
-plt.ylabel("Loss")
-plt.title("Policy Loss during Training")
-plt.legend()
-plt.grid()
 
-plt.figure()
-plt.plot(metrics_callback.value_losses, label="Value Loss")
-plt.xlabel("Timesteps")
-plt.ylabel("Loss")
-plt.title("Value Loss during Training")
-plt.legend()
-plt.grid()
-
-plt.figure()
-plt.plot(metrics_callback.entropy_losses, label="Entropy Loss")
-plt.xlabel("Timesteps")
-plt.ylabel("Loss")
-plt.title("Entropy Loss during Training")
-plt.legend()
-plt.grid()
-
-plt.figure()
-plt.plot(metrics_callback.rewards, label="Episode Reward")
-plt.xlabel("Episodes")
-plt.ylabel("Mean Reward")
-plt.title("Episode Rewards during Training")
-plt.legend()
-plt.grid()
-
-plt.show()
 

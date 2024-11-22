@@ -33,7 +33,7 @@ entropy_coef = 0.01
 value_loss_coef = 0.5
 max_grad_norm = 0.5
 num_epochs = 1000
-num_steps_per_update = 2048
+num_steps_per_update = 200
 mini_batch_size = 64
 ppo_epochs = 10
 max_steps_per_episode = 1001
@@ -186,8 +186,8 @@ while episode < num_epochs:
     print(f"Episode {episode} completed. Total Reward: {episode_rewards}")
 
 # Save the trained policy after all episodes are completed
-torch.save(agent.network.state_dict(), "trained_policy.pth")
-print("Policy saved as 'trained_policy.pth'")
+torch.save(agent.network.state_dict(), "newpolicy_randomholeonly.pth")
+print("Policy saved as 'newpolicy_randomholeonly.pth'")
 
 env.close()
 

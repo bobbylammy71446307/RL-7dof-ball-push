@@ -24,6 +24,8 @@ dependencies:
   - wheel=0.44.0=py39h06a4308_0
   - xz=5.4.6=h5eee18b_1
   - zlib=1.2.13=h5eee18b_1
+  - stable-baselines3=2.3.2
+  - tensorboard=2.18.0
   - pip:
       - absl-py==2.1.0
       - cloudpickle==3.0.0

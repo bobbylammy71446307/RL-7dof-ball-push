@@ -25,9 +25,25 @@ pip install gymnasium[robotics] mujoco numpy
 ```
 ### Project Structure
 
+    base.py - base script adapted from MujocoRobotEnv from gymnasium-robotics to build our PushingBallEnv environment with Mujoco simulator
+
+    push.py - Defines our custom simulation environment PushingBallEnv() using Gymnasium
+
     PPO_network.py: This file defines the learning agent using Proximal Policy Optimization (PPO). It includes the neural network architecture and the agent class that performs action selection, policy evaluation, and network updates.
 
     setup_PPO.py: This is the setup script that integrates the PPO_network.py learning agent with the simulation environment. It configures the environment, runs training episodes, and visualizes the results.
+
+    setup_sb3.py : This is the setup script that trains our environment with the stable baselines3 PPO agent.
+
+    evaluate_model.py - Tests our trained policy in the simulation environment to evaluate performance, visualize rewards and track success rate.
+
+    evaluate_model_sb3.py - Test a policy trained using stable-baseslines3 PPO on the simulation environment
+
+    trained_policy_densenonrandom_1000.pth - our custom policy
+
+    ppo_pushing_ball3.zip - stable_baselines policy
+
+    
 
 #### Running the Project
 

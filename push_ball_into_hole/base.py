@@ -28,7 +28,8 @@ def get_base_env(RobotEnvClass: MujocoRobotEnv):
             target_range,
             distance_threshold,
             reward_type,
-            randomize_positions = True,
+            ball_randomize_positions = False,
+            hole_randomize_positions = False,
             **kwargs,
         ):
             # Initializes our environment with the following parameters:
@@ -52,7 +53,8 @@ def get_base_env(RobotEnvClass: MujocoRobotEnv):
             
             #     reward_type ('sparse' or 'dense'): Our initial idea is to use a dense reward function because we want to reduce the number of steps it takes to push the ball into the hole,
             #     but sparse reward is also being considered
-            self.randomize_positions = randomize_positions  
+            self.ball_randomize_positions = ball_randomize_positions  
+            self.hole_randomize_positions = hole_randomize_positions
             self.block_end_effector = block_end_effector
             self.has_object = has_object
             self.obj_range = obj_range
@@ -153,7 +155,7 @@ def get_base_env(RobotEnvClass: MujocoRobotEnv):
             raise NotImplementedError
 
         def _sample_goal(self):
-            if self.randomize_positions:
+            if self.hole_randomize_positions:
                 # Randomized goal position
                 goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
                     -self.target_range, self.target_range, size=3
@@ -271,7 +273,7 @@ class MujocoSimulation(get_base_env(MujocoRobotEnv)):
 
         # Set object (ball) position
         if self.has_object:
-            if self.randomize_positions:
+            if self.ball_randomize_positions:
                 # Randomized position
                 object_xpos = self.initial_gripper_xpos[:2]
                 while np.linalg.norm(object_xpos - self.initial_gripper_xpos[:2]) < 0.1:

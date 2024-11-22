@@ -3,6 +3,19 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.distributions
 import numpy as np
+from torchviz import make_dot
+
+class ResidualBlock(nn.Module):
+    def __init__(self, dim):
+        super(ResidualBlock, self).__init__()
+        self.layer = nn.Sequential(
+            nn.Linear(dim, dim),
+            nn.LayerNorm(dim),
+            nn.ReLU(),
+        )
+
+    def forward(self, x):
+        return x + self.layer(x)  # Residual connection
 
 class PushNetwork(nn.Module):
     def __init__(self, obs_dim, goal_dim, action_dim):
@@ -28,6 +41,10 @@ class PushNetwork(nn.Module):
             nn.ReLU(),
         )
 
+        #Attention mechanism
+        #self.attention_layer = nn.MultiheadAttention(embed_dim=128, num_heads=4)
+        # #Test with and without Attentionmechanism
+        
         # Combine features
         combined_dim = 128 + 128
 
@@ -54,6 +71,28 @@ class PushNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(256, 1),
         )
+
+    def forward(self, observation, achieved_goal, desired_goal):
+        # Process observation
+        obs_features = self.obs_net(observation)
+
+        # Process goals
+        goal_input = torch.cat([achieved_goal, desired_goal], dim=-1)
+        goal_features = self.goal_net(goal_input)
+
+        # Combine features
+        combined_features = torch.cat([obs_features, goal_features], dim=-1)
+
+        # Policy network
+        policy_features = self.policy_net(combined_features)
+        action_mean = self.action_mean(policy_features)
+        action_log_std = self.action_log_std.expand_as(action_mean)
+        action_std = torch.exp(action_log_std)
+
+        # Value network
+        value = self.value_net(combined_features)
+
+        return action_mean, action_std, value
 
     def forward(self, observation, achieved_goal, desired_goal):
         # Process observation
@@ -161,4 +200,3 @@ class PPOAgent:
         total_loss.backward()
         nn.utils.clip_grad_norm_(self.network.parameters(), max_grad_norm)
         self.optimizer.step()
-

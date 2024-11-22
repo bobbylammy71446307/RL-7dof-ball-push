@@ -44,7 +44,9 @@ class PushingBallEnv(MujocoSimulation, EzPickle):
 
             reward_type=reward_type,  # Defines the type of reward function to be used ('sparse' or 'dense').
             
-            randomize_positions = False,
+            ball_randomize_positions = False, # to randomize the ball position
+
+            hole_randomize_positions = False, #to randomize the hole position
 
             **kwargs  # Any additional arguments passed to the environment.
 
