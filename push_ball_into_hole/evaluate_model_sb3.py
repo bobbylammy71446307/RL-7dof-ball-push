@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 gym.register(
     id="PushingBall-v0",
-    entry_point="push:PushingBallEnv",  # Replace with the correct path
+    entry_point="push:PushingBallEnv",  
     max_episode_steps=100,
 )
 
@@ -27,7 +27,7 @@ for episode in range(num_test_episodes):
 
     while not done:
         # Predict the next action using the trained model
-        action, _states = model.predict(obs, deterministic=True)  # Set deterministic=False for exploration
+        action, _states = model.predict(obs, deterministic=True)  
         obs, reward, terminated, truncated, info = env.step(action)
         total_reward += reward
         done = terminated or truncated

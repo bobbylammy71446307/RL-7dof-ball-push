@@ -9,7 +9,7 @@ from PPO_network import PushNetwork, PPOAgent
 gym.register(
     id='PushingBall',
     entry_point='push:PushingBallEnv',
-    max_episode_steps=1000,
+    max_episode_steps=200,
 )
 
 # Initialize the environment
@@ -20,7 +20,7 @@ obs_dim = 25
 goal_dim = 3
 action_dim = 4
 
-# Re-create the network and agent
+#  the network and agent
 network = PushNetwork(obs_dim, goal_dim, action_dim)
 agent = PPOAgent(network)
 
